@@ -32,7 +32,8 @@ int main()
   //Set up parameters here
   double delta_t = 0.1; // Time elapsed between measurements [sec]
   double sensor_range = 50; // Sensor range [m]
-
+  double total_t = 0.0;
+  
   double sigma_pos [3] = {0.3, 0.3, 0.01}; // GPS measurement uncertainty [x [m], y [m], theta [rad]]
   double sigma_landmark [2] = {0.3, 0.3}; // Landmark measurement uncertainty [x [m], y [m]]
 
@@ -45,13 +46,12 @@ int main()
 
   // Create particle filter
   ParticleFilter pf;
-  cout << "PF is Constructed" << endl;
 
-  h.onMessage([&pf,&map,&delta_t,&sensor_range,&sigma_pos,&sigma_landmark](uWS::WebSocket<uWS::SERVER> ws, char *data, size_t length, uWS::OpCode opCode) {
+  h.onMessage([&pf,&map,&delta_t,&total_t,&sensor_range,&sigma_pos,&sigma_landmark](uWS::WebSocket<uWS::SERVER> ws, char *data, size_t length, uWS::OpCode opCode) {
 	// "42" at the start of the message means there's a websocket message event.
 	// The 4 signifies a websocket message
 	// The 2 signifies a websocket event
-	cout << "Mesg " << data << endl;
+//	cout << "Mesg " << data << endl;
 
 	if (length && length > 2 && data[0] == '4' && data[1] == '2')
 	{
@@ -64,11 +64,8 @@ int main()
 	    std::string event = j[0].get<std::string>();
         
 	    if (event == "telemetry") {
+	      total_t += delta_t;
 	      // j[1] is the data JSON object
-	      if(pf.initialized())
-		cout << "PF is initialized" << endl;
-	      else
-		cout << "PF is NOT initialized" << endl;
 	      if (!pf.initialized()) {
 
           	// Sense noisy position data from the simulator
@@ -82,6 +79,7 @@ int main()
 		// Predict the vehicle's next state from previous (noiseless control) data.
 		double previous_velocity = std::stod(j[1]["previous_velocity"].get<std::string>());
 		double previous_yawrate = std::stod(j[1]["previous_yawrate"].get<std::string>());
+		cout << "DT " << delta_t << " V " << previous_velocity << " W " << previous_yawrate << endl;
 
 		pf.prediction(delta_t, sigma_pos, previous_velocity, previous_yawrate);
 	      }
@@ -112,7 +110,9 @@ int main()
 		obs.x = x_sense[i];
 		obs.y = y_sense[i];
 		noisy_observations.push_back(obs);
+//		cout << "[OBS " << i << "\t" << obs.x << " " << obs.y << " ] ";
 	      }
+//	      cout << endl;
 
 	      // Update the weights and resample
 	      pf.updateWeights(sensor_range, sigma_landmark, noisy_observations, map);
@@ -131,8 +131,9 @@ int main()
 		}
 		weight_sum += particles[i].weight;
 	      }
-	      cout << "highest w " << highest_weight << endl;
-	      cout << "average w " << weight_sum/num_particles << endl;
+	      cout << "highest w " << highest_weight << " / " << weight_sum << endl;
+	      cout << "average w " << weight_sum/num_particles << " / " << weight_sum << endl;
+	      cout << "Time " << total_t << " Best " << best_particle.x << " " << best_particle.y << " " << best_particle.theta << endl;
 
 	      json msgJson;
 	      msgJson["best_particle_x"] = best_particle.x;
