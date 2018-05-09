@@ -39,7 +39,7 @@ void ParticleFilter::init(double x, double y, double theta, double std[]) {
     double yp = dy(gen);
     double tp = dth(gen);
     double wtp = 1.0;
-//    cout << p << " x " << xp <<  " y " << yp <<  " theta " << tp << endl;
+
     Particle par;
     par.id = p;
     par.x = xp;
@@ -56,12 +56,6 @@ void ParticleFilter::prediction(double delta_t, double std_pos[], double velocit
   // NOTE: When adding noise you may find std::normal_distribution and std::default_random_engine useful.
   //  http://en.cppreference.com/w/cpp/numeric/random/normal_distribution
   //  http://www.cplusplus.com/reference/random/default_random_engine/
-//  bool zeroyawrate = fabs(yaw_rate) != 0.0;
-  if(fabs(yaw_rate) > 10.0 || velocity > 100.0)
-  {
-    cout << "********************* BAD Sensor data *************************" << endl;
-//    return;
-  }
   bool zeroyawrate = fabs(yaw_rate) < 0.00001;
   std::default_random_engine gen;
   
@@ -87,12 +81,9 @@ void ParticleFilter::prediction(double delta_t, double std_pos[], double velocit
 
       particles[p].x = xp + vbyw * ( sin(tp + ang) - sin(tp));
       particles[p].y = yp + vbyw * (-cos(tp + ang) + cos(tp));
-      
       tp = tp + ang;
-      if((tp > M_PI || tp < -M_PI) && p == 0)
-	cout << "Theta " << tp << endl;
-//      while (tp> M_PI) tp-=2.*M_PI;
-//      while (tp<-M_PI) tp+=2.*M_PI;
+//      while (tp> M_PI) tp-=2.0*M_PI;
+//      while (tp<-M_PI) tp+=2.0*M_PI;
       particles[p].theta = tp;
     }
 
@@ -182,6 +173,7 @@ void ParticleFilter::updateWeights(double sensor_range, double std_landmark[],
       }
       else
 	mvgd *= 1e-6;
+      // Landmark ID starts from 1 not 0!
       lassociations.push_back(best_index+1);
       lsense_x.push_back(global_obs_x);
       lsense_y.push_back(global_obs_y);
@@ -199,7 +191,6 @@ void ParticleFilter::updateWeights(double sensor_range, double std_landmark[],
       particles[p].weight /= total_wt;
     }
   }
-  
 }
 
 void ParticleFilter::resample() {
